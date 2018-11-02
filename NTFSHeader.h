@@ -1,0 +1,73 @@
+#pragma once
+#include <cstdint>
+
+#define SECTORSIZE 512
+#define PARTITIONTABLESIZE 16
+#define PARTITIONTABLEOFFSET 446
+#define PARTITION_ENTRY_SIZE 128
+
+#define NTFS 0x07
+#define GPT 0xEE
+#define NO_FS 0x00
+
+#define LBA 8
+#define FS_SECTORS 12
+
+typedef uint64_t U64;
+typedef uint32_t U32;
+typedef uint16_t U16;
+typedef uint8_t U8;
+
+#pragma pack(1)
+typedef struct __GPTHeader {
+	U8 Signature[8];
+	U8 Revision[4];
+	U32 HeaderSize;
+	U32 HEaderChksum;
+	U32 Reserved;
+	U64 LBAofGPTHeader;
+	U64 LBAofbkpGPTHeader;
+	U64 StartingLBAforPartitions;
+	U64 EndingLBAforPratitions;
+	U8 GUID[16];
+	U64 StartingLBAParitionTable;
+	U32 NumOfPartitionEntries;
+	U32 SizeOfEntries;
+	U32 PartitionTableChksum;
+	U8 Padding[420];
+} GPTHeader;
+
+typedef struct __GPTable {
+	U8 PartitonTypeGUID[16];
+	U8 PartitionGUID[16];
+	U64 PartitionStartingLBA;
+	U64 PartitionEndeingLBA;
+	U64 PartitionAtts;
+	U8 PartitonName[72];
+} GPTable;
+
+typedef struct __BootRecord {
+	U8 JumpBootCode[3];
+	U8 OEM_ID[8];
+	U16 BytesPerSector;
+	U8 SecPerClus;
+	U16 ReservedSectors;
+	U8 Unused1[5];
+	U8 Media;
+	U8 Unused2[18];
+	U64 TotalSectors;
+	U64 StartClusterforMFT;
+	U64 StartClusterforMFTMirr;
+	U32 ClusPerEntry;
+	U32 ClusPerIndex;
+	U64 VolumeSerialNumber;
+	U8 Unused[430];
+	U16 Siganture;
+} VBR;
+
+typedef struct __MFTEntry {
+	
+} MFTEntry;
+
+#pragma pack()
+
