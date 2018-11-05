@@ -2,6 +2,7 @@
 #include <cstdint>
 
 #define SECTORSIZE 512
+#define CLUSTERSIZE 4096
 #define PARTITIONTABLESIZE 16
 #define PARTITIONTABLEOFFSET 446
 #define PARTITION_ENTRY_SIZE 128
@@ -9,9 +10,6 @@
 #define NTFS 0x07
 #define GPT 0xEE
 #define NO_FS 0x00
-
-#define LBA 8
-#define FS_SECTORS 12
 
 typedef uint64_t U64;
 typedef uint32_t U32;
@@ -63,11 +61,38 @@ typedef struct __BootRecord {
 	U64 VolumeSerialNumber;
 	U8 Unused[430];
 	U16 Siganture;
+	U64 VBR_LBA;
+	U64 BytesPerClus;
 } VBR;
 
-typedef struct __MFTEntry {
+struct MFTHeader{
+
+};
+
+class MFTEntry{
+public:
+	MFTEntry(void) = default;
+	MFTEntry(U32 targetNum) :MyNum(targetNum) {}
 	
-} MFTEntry;
+	U32 getEntryNum(void) const { return MyNum; }
+
+
+private:
+	struct MFTHeader;
+	U8 Signature[4];
+	U16 FixupArrOffset;
+	U16 FixupArrEntries;
+	U64 LSN;
+	U16 SeqNum;
+	U16 HardlinkCnt;
+	U16 FileAttrOffset;
+	U16 Flags;
+	U32 RealSizeofMFTEntry;
+	U32 AllocatedSizeofMFTEntry;
+	U64 FileReference;
+	U16 NextAttrID;
+	U32 MyNum;
+};
 
 #pragma pack()
 
