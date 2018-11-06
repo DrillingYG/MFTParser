@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <cstring>
 
 #define SECTORSIZE 512
 #define CLUSTERSIZE 4096
@@ -61,24 +62,11 @@ typedef struct __BootRecord {
 	U64 VolumeSerialNumber;
 	U8 Unused[430];
 	U16 Siganture;
-	U64 VBR_LBA;
 	U64 BytesPerClus;
+	U64 VBR_LBA;
 } VBR;
 
 struct MFTHeader{
-
-};
-
-class MFTEntry{
-public:
-	MFTEntry(void) = default;
-	MFTEntry(U32 targetNum) :MyNum(targetNum) {}
-	
-	U32 getEntryNum(void) const { return MyNum; }
-
-
-private:
-	struct MFTHeader;
 	U8 Signature[4];
 	U16 FixupArrOffset;
 	U16 FixupArrEntries;
@@ -91,6 +79,32 @@ private:
 	U32 AllocatedSizeofMFTEntry;
 	U64 FileReference;
 	U16 NextAttrID;
+};
+
+struct FixupArr {
+
+};
+
+struct Attributes {
+
+};
+
+class MFTEntry{
+public:
+	MFTEntry(void) = default;
+	MFTEntry(U32 targetNum) :MyNum(targetNum) {}
+	
+	U32 getEntryNum(void) const { return MyNum; }
+
+	void setMFTEntry(void * buf, uint32_t MFTSize) {
+		memset(this, 0, MFTSize);
+		memcpy_s(this, MFTSize, buf, MFTSize);
+	}
+
+private:
+	struct MFTHeader;
+	struct FixupArr;
+	struct Attributes;
 	U32 MyNum;
 };
 
