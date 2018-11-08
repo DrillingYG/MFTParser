@@ -79,14 +79,21 @@ struct MFTHeader{
 	U32 AllocatedSizeofMFTEntry;
 	U64 FileReference;
 	U16 NextAttrID;
+	U8 Unused[6];
 };
 
 struct FixupArr {
-
+	U16 arrEntries[4];
 };
 
-struct Attributes {
-
+struct attrCommonHeader {
+	U32 AttrtypeID;
+	U32 lenOfAttr;
+	U8 Nregflag;
+	U8 nameLen;
+	U16 OffsettoName;
+	U16 Flags;
+	U16 attrID;
 };
 
 class MFTEntry{
@@ -97,14 +104,19 @@ public:
 	U32 getEntryNum(void) const { return MyNum; }
 
 	void setMFTEntry(void * buf, uint32_t MFTSize) {
+		setBuf(MFTSize-sizeof(struct MFTHeader) - sizeof(struct FixupArr));
 		memset(this, 0, MFTSize);
 		memcpy_s(this, MFTSize, buf, MFTSize);
+	}
+
+	void setBuf(U32 others) {
+		
 	}
 
 private:
 	struct MFTHeader;
 	struct FixupArr;
-	struct Attributes;
+	U8 * Buf;
 	U32 MyNum;
 };
 
