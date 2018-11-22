@@ -66,7 +66,11 @@ typedef struct __BootRecord {
 	U64 VBR_LBA;
 } VBR;
 
-struct MFTHeader{
+typedef struct FixupArr {
+	U16 arrEntries[4];
+} FixupArr;
+
+typedef struct MFTHeader{
 	U8 Signature[4];
 	U16 FixupArrOffset;
 	U16 FixupArrEntries;
@@ -80,11 +84,9 @@ struct MFTHeader{
 	U64 FileReference;
 	U16 NextAttrID;
 	U8 Unused[6];
-};
+	FixupArr fixupArr;
+} MFTHeader;
 
-struct FixupArr {
-	U16 arrEntries[4];
-};
 
 struct attrCommonHeader {
 	U32 AttrtypeID;
@@ -96,28 +98,51 @@ struct attrCommonHeader {
 	U16 attrID;
 };
 
+typedef struct residentAttr {
+	U32 sizeOfContent;
+	U16 offsetToContent;
+	U8 idxedFlag;
+	U8 Padding;
+} residentAttr;
+
+typedef struct nonResidentAttr {
+	U64 startVcn;
+	U64 endVcn;
+	U16 runListOffset;
+	U16 compUnitSize;
+	U32 padding;
+	U64 allocatedSize;
+	U64 realSize;
+	U64 initSize;
+} nonResidentAttr;
+#pragma pop()
+
 class MFTEntry{
+
 public:
 	MFTEntry(void) = default;
-	MFTEntry(U32 targetNum) :MyNum(targetNum) {}
+	MFTEntry(U32 targetNum) :mftNum(targetNum) {}
 	
-	U32 getEntryNum(void) const { return MyNum; }
+	U32 getEntryNum(void) const { return mftNum; }
 
 	void setMFTEntry(void * buf, uint32_t MFTSize) {
-		setBuf(MFTSize-sizeof(struct MFTHeader) - sizeof(struct FixupArr));
 		memset(this, 0, MFTSize);
 		memcpy_s(this, MFTSize, buf, MFTSize);
 	}
 
-	void setBuf(U32 others) {
-		
+	U8 * getBuf(void) {
+		return this->Buf;
 	}
 
+	void printMftInfo() {
+
+	}
 private:
-	struct MFTHeader;
-	struct FixupArr;
-	U8 * Buf;
-	U32 MyNum;
+	union {
+		U8 Buf[1024];
+		MFTHeader mftHdr;
+	};
+	U32 mftNum;
 };
 
 #pragma pack()
