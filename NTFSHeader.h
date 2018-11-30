@@ -1,6 +1,10 @@
 #pragma once
 #include <cstdint>
 #include <cstring>
+#include <iostream>
+#include <iomanip>
+
+using namespace std;
 
 #define SECTORSIZE 512
 #define CLUSTERSIZE 4096
@@ -11,11 +15,41 @@
 #define NTFS 0x07
 #define GPT 0xEE
 #define NO_FS 0x00
+#define LINE_SEP "------------------------------------------"
 
 typedef uint64_t U64;
 typedef uint32_t U32;
 typedef uint16_t U16;
 typedef uint8_t U8;
+
+U64 betole64(U64 num) {
+	U64 ret;
+	ret = ((num & 0x00000000000000FF) << 56)
+		| ((num & 0x000000000000FF00) << 40)
+		| ((num & 0x0000000000FF0000) << 24)
+		| ((num & 0x00000000FF000000) << 8)
+		| ((num & 0x000000FF00000000) >> 8)
+		| ((num & 0x0000FF0000000000) >> 24)
+		| ((num & 0x00FF000000000000) >> 40)
+		| ((num & 0xFF00000000000000) >> 56);
+	return ret;
+}
+
+U32 betole32(U32 num) {
+	U32 ret;
+	ret = ((num & 0x000000FF) << 24)
+		| ((num & 0x0000FF00) << 8)
+		| ((num & 0x00FF0000) >> 8)
+		| ((num & 0xFF000000) >> 24);
+	return ret;
+}
+
+U16 betole16(U16 num) {
+	U16 ret;
+	ret = ((num & 0x00FF) << 8)
+		| ((num & 0xFF00) >> 8);
+	return ret;
+}
 
 #pragma pack(1)
 typedef struct __GPTHeader {
@@ -115,7 +149,7 @@ typedef struct nonResidentAttr {
 	U64 realSize;
 	U64 initSize;
 } nonResidentAttr;
-#pragma pop()
+#pragma pack()
 
 class MFTEntry{
 
@@ -123,25 +157,49 @@ public:
 	MFTEntry(void) = default;
 	MFTEntry(U32 targetNum) :mftNum(targetNum) {}
 	
-	U32 getEntryNum(void) const { return mftNum; }
+	const U32 getEntryNum(void) const { return mftNum; }
 
 	void setMFTEntry(void * buf, uint32_t MFTSize) {
 		memset(this, 0, MFTSize);
 		memcpy_s(this, MFTSize, buf, MFTSize);
 	}
 
-	U8 * getBuf(void) {
-		return this->Buf;
-	}
+	U8 * getBuf  (void) { return Buf; }
+	
 
 	void printMftInfo() {
+		cout << "Buf offset : " << hex << &Buf << endl;
+		cout << "mftHeader offset : " << hex <<  &mftHdr << endl;
+		cout << "<<<<<<<<<<<<<<<<<<<<<<<<  MFT Entry Header >>>>>>>>>>>>>>>>>>>>>>>>" << endl;
+		cout << "LSN = " << mftHdr.LSN << endl;
+		cout << "Sequence Number = " << mftHdr.SeqNum << endl;
+		cout << "Link Count = " << mftHdr.HardlinkCnt << endl;
+		cout << "First Attr Offset = " << mftHdr.FileAttrOffset << endl;
+		cout << "Flags = " << mftHdr.Flags << endl;
+		cout << "Used Sizeof MFT = " << mftHdr.RealSizeofMFTEntry << endl;
+		cout << "Allocated size of MFT = " << mftHdr.AllocatedSizeofMFTEntry << endl;
+		cout << "File Reference to base record = " << mftHdr.FileReference << endl;
+		cout << "Next Attr ID = " << mftHdr.NextAttrID << endl;
+		cout << endl << "<<<<<<<<<<<<<<<<<<<<<<<<  Fixup Array >>>>>>>>>>>>>>>>>>>>>>>>" << endl;
+		
+		for (int a = 0; a < 4; a = a + 1) cout <<  "0x" << hex << setw(4) << setfill('0') << betole16(mftHdr.fixupArr.arrEntries[a]) << ' ';
+		cout << endl;
+	}
+
+	void printStdInfo() {
+		this->curPtr = mftHdr.FixupArrOffset;
+
+	}
+
+	void printFileNameInfo() {
 
 	}
 private:
-	union {
+	union  {
 		U8 Buf[1024];
 		MFTHeader mftHdr;
 	};
+	U32 curPtr;
 	U32 mftNum;
 };
 
