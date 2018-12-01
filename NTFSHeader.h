@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <cstring>
+#include <cstdlib>
 #include <iostream>
 #include <iomanip>
 
@@ -21,6 +22,28 @@ typedef uint64_t U64;
 typedef uint32_t U32;
 typedef uint16_t U16;
 typedef uint8_t U8;
+
+void hexdump(void * buf, U32 size) {
+	printf("        ");
+	for (U32 a = 0; a < 16; a = a + 1) {
+		printf("%02X ", a);
+	}
+	puts("");
+
+	for (U32 a = 0; a < 55; a = a + 1) putchar((a < 8 ? ' ' : '-'));
+	puts("");
+
+	for (U32 a = 0; a < size; a = a + 1) {
+		if (a % 16 == 0) printf("0x%04X  ", a);
+		printf("%02X ", *((U8*)buf + a));
+		if ((a + 1) % 16 == 0 || a == size - 1) puts("");
+		if (a == 511) {
+			for (U32 b = 0; b < 55; b = b + 1) putchar('-');
+			puts("");
+		}
+	}
+	puts("");
+}
 
 U64 betole64(U64 num) {
 	U64 ret;
@@ -100,11 +123,11 @@ typedef struct __BootRecord {
 	U64 VBR_LBA;
 } VBR;
 
-typedef struct FixupArr {
+typedef struct __FixupArr {
 	U16 arrEntries[4];
 } FixupArr;
 
-typedef struct MFTHeader{
+typedef struct __MFTHeader{
 	U8 Signature[4];
 	U16 FixupArrOffset;
 	U16 FixupArrEntries;
@@ -122,7 +145,7 @@ typedef struct MFTHeader{
 } MFTHeader;
 
 
-struct attrCommonHeader {
+typedef struct __attrCommonHeader {
 	U32 AttrtypeID;
 	U32 lenOfAttr;
 	U8 Nregflag;
@@ -130,16 +153,16 @@ struct attrCommonHeader {
 	U16 OffsettoName;
 	U16 Flags;
 	U16 attrID;
-};
+} attrCommonHeader;
 
-typedef struct residentAttr {
+typedef struct __residentAttrHdr {
 	U32 sizeOfContent;
 	U16 offsetToContent;
 	U8 idxedFlag;
 	U8 Padding;
-} residentAttr;
+} residentAttrHdr;
 
-typedef struct nonResidentAttr {
+typedef struct __nonResidentAttr {
 	U64 startVcn;
 	U64 endVcn;
 	U16 runListOffset;
@@ -148,7 +171,22 @@ typedef struct nonResidentAttr {
 	U64 allocatedSize;
 	U64 realSize;
 	U64 initSize;
-} nonResidentAttr;
+} nonResidentAttrHdr;
+
+typedef struct __STDINFO {
+	U64 createTime;
+	U64 modifiedTime;
+	U64 mftModifiedTime;
+	U64 lastAccessedTime;
+	U32 Flags;
+	U32 MaxVersionNum;
+	U32 VersionNum;
+	U32 ClassID;
+	U32 OwnerID;
+	U32 SecID;
+	U64 QuotaCharged;
+	U64 UCN;
+} stdInfo;
 #pragma pack()
 
 class MFTEntry{
@@ -168,8 +206,6 @@ public:
 	
 
 	void printMftInfo() {
-		cout << "Buf offset : " << hex << &Buf << endl;
-		cout << "mftHeader offset : " << hex <<  &mftHdr << endl;
 		cout << "<<<<<<<<<<<<<<<<<<<<<<<<  MFT Entry Header >>>>>>>>>>>>>>>>>>>>>>>>" << endl;
 		cout << "LSN = " << mftHdr.LSN << endl;
 		cout << "Sequence Number = " << mftHdr.SeqNum << endl;
@@ -183,16 +219,34 @@ public:
 		cout << endl << "<<<<<<<<<<<<<<<<<<<<<<<<  Fixup Array >>>>>>>>>>>>>>>>>>>>>>>>" << endl;
 		
 		for (int a = 0; a < 4; a = a + 1) cout <<  "0x" << hex << setw(4) << setfill('0') << betole16(mftHdr.fixupArr.arrEntries[a]) << ' ';
-		cout << endl;
+		cout << endl << endl;
 	}
 
 	void printStdInfo() {
 		this->curPtr = mftHdr.FixupArrOffset;
+		this->curPtr += 8;
+		
+		attrCommonHeader cmnHdr;
+		memcpy_s(static_cast<void*>(&cmnHdr), sizeof(attrCommonHeader), Buf + curPtr, sizeof(attrCommonHeader));		
+		this->curPtr += sizeof(attrCommonHeader);
+
+		residentAttrHdr resHdr;
+		memcpy_s(static_cast<void*>(&resHdr), sizeof(residentAttrHdr), Buf + curPtr, sizeof(residentAttrHdr));
+		this->curPtr += sizeof(residentAttrHdr);
+
+		stdInfo STDINFO;
+		memcpy_s(static_cast<void*>(&STDINFO), sizeof(stdInfo), Buf+curPtr, sizeof(stdInfo));
+		this->curPtr += sizeof(stdInfo);
+
+		cout << "<<<<<<<<<<<<<<<<<<<<<<<<  STANDARD INFO >>>>>>>>>>>>>>>>>>>>>>>>" << endl;
+		cout << "Created Time : " << STDINFO.createTime << endl;
+		cout << "Modified Time : " << STDINFO.modifiedTime << endl;
+		cout << "MFT Modified Time : " << STDINFO.mftModifiedTime << endl;
+		cout << "Accessed Time : " << STDINFO.lastAccessedTime << endl;
 
 	}
 
 	void printFileNameInfo() {
-
 	}
 private:
 	union  {
