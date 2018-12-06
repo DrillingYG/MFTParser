@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdio>
 #include <cstdint>
 #include <cstring>
 #include <cstdlib>
@@ -187,6 +188,20 @@ typedef struct __STDINFO {
 	U64 QuotaCharged;
 	U64 UCN;
 } stdInfo;
+
+typedef struct __FILENAME {
+	U64 fileReferenceAddrofParent;
+	U64 createTime;
+	U64 modifiedTime;
+	U64 mftModifiedTime;
+	U64 lastAccessedTime;
+	U64 allocatedSize;
+	U64 realsSize;
+	U32 flags;
+	U32 reparseValue;
+	U8 lenName;
+	U8 nameSpace;
+} fileName;
 #pragma pack()
 
 class MFTEntry{
@@ -198,8 +213,8 @@ public:
 	const U32 getEntryNum(void) const { return mftNum; }
 
 	void setMFTEntry(void * buf, uint32_t MFTSize) {
-		memset(this, 0, MFTSize);
-		memcpy_s(this, MFTSize, buf, MFTSize);
+		memset(this->Buf, 0, MFTSize);
+		memcpy_s(this->Buf, MFTSize, buf, MFTSize);
 	}
 
 	U8 * getBuf  (void) { return Buf; }
@@ -225,7 +240,7 @@ public:
 	void printStdInfo() {
 		this->curPtr = mftHdr.FixupArrOffset;
 		this->curPtr += 8;
-		
+
 		attrCommonHeader cmnHdr;
 		memcpy_s(static_cast<void*>(&cmnHdr), sizeof(attrCommonHeader), Buf + curPtr, sizeof(attrCommonHeader));		
 		this->curPtr += sizeof(attrCommonHeader);
@@ -235,8 +250,8 @@ public:
 		this->curPtr += sizeof(residentAttrHdr);
 
 		stdInfo STDINFO;
-		memcpy_s(static_cast<void*>(&STDINFO), sizeof(stdInfo), Buf+curPtr, sizeof(stdInfo));
-		this->curPtr += sizeof(stdInfo);
+		memcpy_s(static_cast<void*>(&STDINFO), resHdr.sizeOfContent, Buf+curPtr, resHdr.sizeOfContent);
+		this->curPtr += resHdr.sizeOfContent;
 
 		cout << "<<<<<<<<<<<<<<<<<<<<<<<<  STANDARD INFO >>>>>>>>>>>>>>>>>>>>>>>>" << endl;
 		cout << "Created Time : " << STDINFO.createTime << endl;
@@ -247,6 +262,30 @@ public:
 	}
 
 	void printFileNameInfo() {
+		cout << "pre point : " << curPtr << endl;
+		
+		attrCommonHeader cmnHdr;
+		memcpy_s(static_cast<void*>(&cmnHdr), sizeof(attrCommonHeader), Buf + curPtr, sizeof(attrCommonHeader));
+		this->curPtr += sizeof(attrCommonHeader);
+
+		residentAttrHdr resHdr;
+		memcpy_s(static_cast<void*>(&resHdr), sizeof(residentAttrHdr), Buf + curPtr, sizeof(residentAttrHdr));
+		this->curPtr += sizeof(residentAttrHdr);
+
+		fileName filenameattr; 
+		memcpy_s(static_cast<void*>(&filenameattr), sizeof(fileName), Buf + curPtr, sizeof(fileName));
+		this->curPtr += sizeof(fileName);
+
+		filename = new wchar_t[filenameattr.lenName + 1];
+		memcpy_s(static_cast<void*>(filename), sizeof(wchar_t) * filenameattr.lenName,
+				Buf + curPtr, sizeof(wchar_t) * filenameattr.lenName);
+		filename[filenameattr.lenName] = '\0';
+		
+		cout << endl <<  "<<<<<<<<<<<<<<<<<<<<<<<<  FILENAME >>>>>>>>>>>>>>>>>>>>>>>>" << endl;
+		cout << "Flags : " << filenameattr.flags << endl;
+		printf("Name length : %d\n", filenameattr.lenName);
+		printf("Name space : %d\n", filenameattr.nameSpace);
+		wcout << "file Name : " << filename << endl;
 	}
 private:
 	union  {
@@ -255,6 +294,7 @@ private:
 	};
 	U32 curPtr;
 	U32 mftNum;
+	wchar_t * filename;
 };
 
 #pragma pack()
