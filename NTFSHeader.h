@@ -261,9 +261,7 @@ public:
 
 	}
 
-	void printFileNameInfo() {
-		cout << "pre point : " << curPtr << endl;
-		
+	void printFileNameInfo() {		
 		attrCommonHeader cmnHdr;
 		memcpy_s(static_cast<void*>(&cmnHdr), sizeof(attrCommonHeader), Buf + curPtr, sizeof(attrCommonHeader));
 		this->curPtr += sizeof(attrCommonHeader);
@@ -286,6 +284,8 @@ public:
 		printf("Name length : %d\n", filenameattr.lenName);
 		printf("Name space : %d\n", filenameattr.nameSpace);
 		wcout << "file Name : " << filename << endl;
+
+		delete[] filename;
 	}
 private:
 	union  {
@@ -296,6 +296,3 @@ private:
 	U32 mftNum;
 	wchar_t * filename;
 };
-
-#pragma pack()
-
